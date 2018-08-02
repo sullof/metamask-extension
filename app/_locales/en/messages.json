@@ -701,6 +701,9 @@
   "missingYourTokens": {
     "message": "Don't see your tokens?"
   },
+  "minutesShorthand": {
+    "message": "Min"
+  },
   "myAccounts": {
     "message": "My Accounts"
   },
@@ -1029,6 +1032,9 @@
   },
   "secretPhrase": {
     "message": "Enter your secret twelve word phrase here to restore your vault."
+  },
+  "secondsShorthand": {
+    "message": "Sec"
   },
   "seedPhraseReq": {
     "message": "Seed phrases are 12 words long"
