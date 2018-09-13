@@ -28,7 +28,7 @@ const casedContractMap = Object.keys(contractMap).reduce((acc, base) => {
 
 const mapStateToProps = (state, props) => {
   const { toAddress: propsToAddress } = props
-  const { confirmTransaction, metamask } = state
+  const { confirmTransaction, metamask, gas } = state
   const {
     ethTransactionAmount,
     ethTransactionFee,
@@ -59,6 +59,12 @@ const mapStateToProps = (state, props) => {
     unapprovedTxs,
   } = metamask
   const assetImage = assetImages[txParamsToAddress]
+
+  const {
+    customGasLimit,
+    customGasPrice,
+  } = gas
+
   const { balance } = accounts[selectedAddress]
   const { name: fromName } = identities[selectedAddress]
   const toAddress = propsToAddress || txParamsToAddress
@@ -104,6 +110,10 @@ const mapStateToProps = (state, props) => {
     assetImage,
     unapprovedTxs,
     unapprovedTxCount,
+    customGas: {
+      gasLimit: customGasLimit || txData.gasPrice,
+      gasPrice: customGasPrice || txData.gasLimit,
+    },
   }
 }
 
@@ -190,7 +200,7 @@ const mergeProps = (stateProps, dispatchProps, ownProps) => {
     ...ownProps,
     showCustomizeGasModal: () => dispatchShowCustomizeGasModal({
       txData,
-      onSubmit: txData => dispatchUpdateGasAndCalculate(txData),
+      onSubmit: customGas => dispatchUpdateGasAndCalculate(customGas),
       validate: validateEditGas,
     }),
     cancelAllTransactions: () => dispatchCancelAllTransactions(valuesFor(unapprovedTxs)),
