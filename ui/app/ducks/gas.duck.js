@@ -210,7 +210,7 @@ export function fetchGasEstimates (blockTime) {
     const timeLastRetrieved = priceAndTimeEstimatesLastRetrieved || loadLocalStorageData('GAS_API_ESTIMATES_LAST_RETRIEVED') || 0
 
     dispatch(gasEstimatesLoadingStarted())
-
+    console.log('Date.now() - timeLastRetrieved', Date.now() - timeLastRetrieved)
     const promiseToFetch = Date.now() - timeLastRetrieved > 75000
       ? fetch('https://ethgasstation.info/json/predictTable.json', {
           'headers': {},
