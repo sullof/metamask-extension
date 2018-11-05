@@ -22,6 +22,7 @@ const {
   verboseReportOnFailure,
   waitUntilXWindowHandles,
 } = require('./helpers')
+const fetchMockResponses = require('./fetch-mocks.js')
 
 describe('MetaMask', function () {
   let extensionId
@@ -54,6 +55,18 @@ describe('MetaMask', function () {
         await driver.get(`moz-extension://${extensionId}/popup.html`)
       }
     }
+  })
+
+  beforeEach(async function () {
+    await driver.executeScript(
+      'window.fetch = ' +
+      '(...args) => { ' +
+      'if (args[0] === "https://ethgasstation.info/json/ethgasAPI.json") { return ' +
+      'Promise.resolve({ json: () => Promise.resolve(JSON.parse(\'' + fetchMockResponses.ethGasBasic + '\')) }); } else if ' +
+      '(args[0] === "https://ethgasstation.info/json/predictTable.json") { return ' +
+      'Promise.resolve({ json: () => Promise.resolve(JSON.parse(\'' + fetchMockResponses.ethGasPredictTable + '\')) }); } ' +
+      'return window.fetch(...args); }'
+    )
   })
 
   afterEach(async function () {
@@ -271,17 +284,17 @@ describe('MetaMask', function () {
       await driver.wait(until.stalenessOf(accountModal))
       await delay(regularDelayMs)
     })
-    it('show account details dropdown menu', async () => {
+    // it('show account details dropdown menu', async () => {
 
-      const {width, height} = await driver.manage().window().getSize()
-      driver.manage().window().setSize(320, 480)
-      await driver.findElement(By.css('div.menu-bar__open-in-browser')).click()
-      const options = await driver.findElements(By.css('div.menu.account-details-dropdown div.menu__item'))
-      assert.equal(options.length, 3) // HD Wallet type does not have to show the Remove Account option
-      await delay(regularDelayMs)
-      driver.manage().window().setSize(width, height)
+    //   const {width, height} = await driver.manage().window().getSize()
+    //   driver.manage().window().setSize(320, 480)
+    //   await driver.findElement(By.css('div.menu-bar__open-in-browser')).click()
+    //   const options = await driver.findElements(By.css('div.menu.account-details-dropdown div.menu__item'))
+    //   assert.equal(options.length, 3) // HD Wallet type does not have to show the Remove Account option
+    //   await delay(regularDelayMs)
+    //   driver.manage().window().setSize(width, height)
 
-    })
+    // })
   })
 
   describe('Enable privacy mode', () => {
@@ -393,7 +406,7 @@ describe('MetaMask', function () {
   })
 
   describe('Send ETH from inside MetaMask', () => {
-    it('starts to send a transaction', async function () {
+    it('starts a send transaction', async function () {
       const sendButton = await findElement(driver, By.xpath(`//button[contains(text(), 'Send')]`))
       await sendButton.click()
       await delay(regularDelayMs)
@@ -407,12 +420,11 @@ describe('MetaMask', function () {
       assert.equal(inputValue, '1')
 
       // Set the gas limit
-      const configureGas = await findElement(driver, By.css('.send-v2__gas-fee-display button'))
+      const configureGas = await findElement(driver, By.css('.advanced-gas-options-btn'))
       await configureGas.click()
       await delay(regularDelayMs)
 
       const gasModal = await driver.findElement(By.css('span .modal'))
-
       const save = await findElement(driver, By.xpath(`//button[contains(text(), 'Save')]`))
       await save.click()
       await driver.wait(until.stalenessOf(gasModal))
@@ -461,12 +473,12 @@ describe('MetaMask', function () {
       await delay(regularDelayMs)
       const approveButton = await findElement(driver, By.xpath(`//button[contains(text(), 'Connect')]`))
       await approveButton.click()
+
+      await driver.switchTo().window(dapp)
+      await delay(regularDelayMs)
     })
 
     it('initiates a send from the dapp', async () => {
-      await driver.switchTo().window(dapp)
-      await delay(regularDelayMs)
-
       const send3eth = await findElement(driver, By.xpath(`//button[contains(text(), 'Send')]`), 10000)
       await send3eth.click()
       await delay(5000)
@@ -579,9 +591,12 @@ describe('MetaMask', function () {
       await delay(regularDelayMs)
 
       const gasModal = await findElement(driver, By.css('span .modal'))
-      await driver.wait(until.elementLocated(By.css('.customize-gas__title')), 10000)
+      await delay(regularDelayMs)
+      const modalTabs = await findElements(driver, By.css('.page-container__tab'))
+      await modalTabs[1].click()
+      await delay(regularDelayMs)
 
-      const [gasPriceInput, gasLimitInput] = await findElements(driver, By.css('.customize-gas-input'))
+      const [gasPriceInput, gasLimitInput] = await findElements(driver, By.css('.advanced-tab__gas-edit-row__input'))
       await gasPriceInput.clear()
       await gasPriceInput.sendKeys('10')
       await gasLimitInput.clear()
@@ -736,15 +751,16 @@ describe('MetaMask', function () {
       await inputAmount.sendKeys('50')
 
       // Set the gas limit
-      const configureGas = await findElement(driver, By.css('.send-v2__gas-fee-display button'))
+      const configureGas = await findElement(driver, By.css('.advanced-gas-options-btn'))
       await configureGas.click()
       await delay(regularDelayMs)
 
       gasModal = await driver.findElement(By.css('span .modal'))
+      await delay(regularDelayMs)
     })
 
-    it('opens customizes gas modal', async () => {
-      await driver.wait(until.elementLocated(By.css('.send-v2__customize-gas__title')))
+    it('opens customize gas modal', async () => {
+      await driver.wait(until.elementLocated(By.css('.page-container__title')))
       const save = await findElement(driver, By.xpath(`//button[contains(text(), 'Save')]`))
       await save.click()
       await delay(regularDelayMs)
@@ -840,9 +856,11 @@ describe('MetaMask', function () {
     })
 
     it('customizes gas', async () => {
-      await driver.wait(until.elementLocated(By.css('.customize-gas__title')))
+      const modalTabs = await findElements(driver, By.css('.page-container__tab'))
+      await modalTabs[1].click()
+      await delay(regularDelayMs)
 
-      const [gasPriceInput, gasLimitInput] = await findElements(driver, By.css('.customize-gas-input'))
+      const [gasPriceInput, gasLimitInput] = await findElements(driver, By.css('.advanced-tab__gas-edit-row__input'))
       await gasPriceInput.clear()
       await delay(tinyDelayMs)
       await gasPriceInput.sendKeys('10')
@@ -859,7 +877,7 @@ describe('MetaMask', function () {
         await gasLimitInput.sendKeys(Key.BACK_SPACE)
       }
 
-      const save = await findElement(driver, By.css('.customize-gas__save'))
+      const save = await findElement(driver, By.css('.page-container__footer-button'))
       await save.click()
       await driver.wait(until.stalenessOf(gasModal))
 
@@ -963,9 +981,11 @@ describe('MetaMask', function () {
     })
 
     it('customizes gas', async () => {
-      await driver.wait(until.elementLocated(By.css('.customize-gas__title')))
+      const modalTabs = await findElements(driver, By.css('.page-container__tab'))
+      await modalTabs[1].click()
+      await delay(regularDelayMs)
 
-      const [gasPriceInput, gasLimitInput] = await findElements(driver, By.css('.customize-gas-input'))
+      const [gasPriceInput, gasLimitInput] = await findElements(driver, By.css('.advanced-tab__gas-edit-row__input'))
       await gasPriceInput.clear()
       await delay(tinyDelayMs)
       await gasPriceInput.sendKeys('10')
@@ -982,7 +1002,7 @@ describe('MetaMask', function () {
         await gasLimitInput.sendKeys(Key.BACK_SPACE)
       }
 
-      const save = await findElement(driver, By.css('.customize-gas__save'))
+      const save = await findElement(driver, By.css('.page-container__footer-button'))
       await save.click()
       await driver.wait(until.stalenessOf(gasModal))
 
